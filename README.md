@@ -25,6 +25,46 @@ Permite observar:
 - Un LLM utilizado como componente del flujo, no como controlador.
 - Validación exacta alternativa si Groq no está disponible.
 
+## 🎓 Presentación y demo online
+
+El proyecto cuenta con dos recursos complementarios:
+
+### Presentación de la masterclass
+
+👉 [Abrir la presentación interactiva](https://masterclasslanggraph.lovable.app)
+
+Explica paso a paso los conceptos principales de LangGraph:
+
+- Estado compartido, nodos y aristas.
+- Enrutamiento condicional.
+- Ciclos y condiciones de salida.
+- Pausas y reanudación de la ejecución.
+- Aprobación humana.
+- Arquitectura del escape room.
+
+Incluye simulaciones didácticas para ilustrar los conceptos.
+Estas simulaciones no ejecutan LangGraph ni consultan un modelo.
+
+### Aplicación práctica
+
+👉 [Jugar al escape room en Streamlit](https://langgraph-escape-room.streamlit.app/)
+
+Aplicación Python que implementa el flujo con LangGraph y permite observar:
+
+- Validación de respuestas con Groq y fallback de reglas exactas.
+- Ayudas progresivas y un límite de tres intentos por sala.
+- Actualización del estado durante la partida.
+- Diagrama del grafo e historial de nodos.
+- Pausas para responder y autorizar la apertura final.
+
+### Cómo utilizar ambos recursos
+
+1. Introducir los conceptos con la presentación.
+2. Abrir la aplicación de Streamlit y realizar una partida.
+3. Observar los cambios de estado, los ciclos y las pausas.
+4. Consultar el código para relacionar el comportamiento
+   con las funciones y conexiones del grafo.
+
 ## Tecnologías
 
 - Python.
@@ -51,7 +91,7 @@ langgraph-escape-room/
 ### 1. Clonar el repositorio
 
 ```powershell
-git clone [https://github.com/garciaguadalupevanessa-bit/langgraph-escape-room.git](https://github.com/garciaguadalupevanessa-bit/langgraph-escape-room.git)
+git clone (https://github.com/garciaguadalupevanessa-bit/langgraph-escape-room.git)
 cd langgraph-escape-room
 ```
 
@@ -95,6 +135,15 @@ alternativa. La interfaz muestra qué validador se ha utilizado.
 ```
 
 Abrir la dirección local indicada en la terminal.
+
+## Demo online
+
+[Probar el escape room](https://langgraph-escape-room.streamlit.app/)
+
+La aplicación permite observar el estado, los ciclos de reintento,
+las ayudas progresivas y la aprobación humana final.
+
+
 
 ## Cómo jugar
 
