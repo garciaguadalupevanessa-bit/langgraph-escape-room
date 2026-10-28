@@ -1,0 +1,4 @@
+streamlit>=1.40
+langgraph>=1.0
+langchain-groq
+python-dotenv
