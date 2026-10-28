@@ -1,5 +1,6 @@
 import uuid
 from typing import Any
+import graphviz
 
 import streamlit as st
 from langchain_core.runnables import RunnableConfig
@@ -15,6 +16,131 @@ st.set_page_config(
 )
 
 APP_VERSION = "escape-room-v2"
+
+def draw_game_graph(
+    graph: Any,
+    state: dict[str, Any],
+    pending: dict[str, Any] | None,
+) -> graphviz.Digraph:
+    diagram = graphviz.Digraph()
+
+    diagram.attr(
+        rankdir="TB",
+        bgcolor="transparent",
+        nodesep="0.25",
+        ranksep="0.4",
+    )
+
+    diagram.attr(
+        "node",
+        shape="box",
+        style="rounded,filled",
+        fontname="Arial",
+        fontsize="11",
+        margin="0.12,0.08",
+    )
+
+    diagram.attr(
+        "edge",
+        fontname="Arial",
+        fontsize="9",
+        color="#94A3B8",
+        arrowsize="0.7",
+    )
+
+    labels = {
+        "__start__": "INICIO",
+        "read_clue": "Mostrar acertijo",
+        "wait_for_answer": "Esperar respuesta",
+        "check_answer": "Validar respuesta",
+        "retry": "Dar ayuda",
+        "next_room": "Siguiente sala",
+        "final_approval": "Pedir aprobación",
+        "escape": "Victoria",
+        "game_over": "Fin de partida",
+        "__end__": "FIN",
+    }
+
+    # El historial contiene los nombres de los nodos completados.
+    visited = {
+        event.split(":", 1)[0].split(" →", 1)[0].strip()
+        for event in state["history"]
+    }
+
+    visited.add("__start__")
+
+    active_node = None
+
+    if pending:
+        active_node = (
+            "wait_for_answer"
+            if pending["kind"] == "answer"
+            else "final_approval"
+        )
+
+    finished = state["status"] in {"escaped", "game_over"}
+
+    if finished:
+        visited.add("__end__")
+
+    # La topología procede del grafo real de LangGraph.
+    topology = graph.get_graph()
+
+    for node_id in topology.nodes:
+        fill = "#F1F5F9"
+        border = "#CBD5E1"
+        text = "#334155"
+        penwidth = "1"
+
+        if node_id in visited:
+            fill = "#DCFCE7"
+            border = "#22C55E"
+
+        if node_id == active_node:
+            fill = "#FEF3C7"
+            border = "#F59E0B"
+            penwidth = "3"
+
+        if finished and node_id == "__end__":
+            fill = "#DBEAFE"
+            border = "#3B82F6"
+            penwidth = "3"
+
+        label = labels.get(node_id, node_id)
+
+        if node_id == active_node:
+            label += "\nESPERANDO ENTRADA"
+
+        diagram.node(
+            node_id,
+            label=label,
+            fillcolor=fill,
+            color=border,
+            fontcolor=text,
+            penwidth=penwidth,
+        )
+
+    edge_labels = {
+        ("check_answer", "retry"): "Fallo: quedan intentos",
+        ("check_answer", "game_over"): "Sin intentos",
+        ("check_answer", "next_room"): "Acierto: quedan salas",
+        ("check_answer", "final_approval"): "Última sala resuelta",
+        ("final_approval", "escape"): "Aprobar",
+        ("final_approval", "game_over"): "Rechazar",
+    }
+
+    for edge in topology.edges:
+        diagram.edge(
+            edge.source,
+            edge.target,
+            label=edge_labels.get(
+                (edge.source, edge.target),
+                "",
+            ),
+            style="dashed" if edge.conditional else "solid",
+        )
+
+    return diagram
 
 
 def execute_graph(graph_input: Any) -> None:
@@ -234,34 +360,77 @@ with game_column:
 
 
 with debug_column:
-    st.subheader("🧭 Recorrido del grafo")
+    st.subheader("🧭 Qué está haciendo el grafo")
 
-    st.caption(
-        "Los nodos completados registran su paso. "
-        "La pausa activa aparece al final."
+    diagram_tab, history_tab = st.tabs(
+        ["Diagrama", "Historial"]
     )
 
-    for index, event in enumerate(
-        state["history"],
-        start=1,
-    ):
-        st.text(f"{index}. {event}")
-
-    if pending:
-        waiting_node = (
-            "wait_for_answer"
-            if pending["kind"] == "answer"
-            else "final_approval"
+    with diagram_tab:
+        diagram = draw_game_graph(
+            st.session_state.escape_graph,
+            state,
+            pending,
         )
 
-        st.warning(
-            f"⏸️ {waiting_node}: esperando entrada humana"
+        st.graphviz_chart(diagram)
+
+        st.caption(
+            "🟩 Visitado · 🟨 Esperando entrada · "
+            "⬜ No visitado · 🟦 Ejecución finalizada"
         )
 
-    with st.expander("Ver código Mermaid del grafo"):
-        st.code(
-            st.session_state.escape_graph
-            .get_graph()
-            .draw_mermaid(),
-            language="mermaid",
+        st.caption(
+            "Los colores resumen esta partida: un nodo verde "
+            "puede haberse ejecutado varias veces. "
+            "Las flechas muestran los caminos posibles, "
+            "no un registro de las transiciones realizadas."
         )
+
+        if pending:
+            if pending["kind"] == "answer":
+                st.info(
+                    "El grafo está pausado hasta que "
+                    "el jugador envíe una respuesta."
+                )
+            else:
+                st.info(
+                    "El grafo está pausado hasta recibir "
+                    "la aprobación o el rechazo del supervisor."
+                )
+
+        elif state["status"] == "escaped":
+            st.success("El grafo ha terminado con victoria.")
+
+        elif state["status"] == "game_over":
+            st.warning("El grafo ha terminado sin abrir la puerta.")
+
+    with history_tab:
+        st.caption(
+            "Orden de los nodos completados durante la partida."
+        )
+
+        for index, event in enumerate(
+            state["history"],
+            start=1,
+        ):
+            st.text(f"{index}. {event}")
+
+        if pending:
+            waiting_node = (
+                "wait_for_answer"
+                if pending["kind"] == "answer"
+                else "final_approval"
+            )
+
+            st.warning(
+                f"⏸️ {waiting_node}: esperando entrada humana"
+            )
+
+        with st.expander("Ver código Mermaid"):
+            st.code(
+                st.session_state.escape_graph
+                .get_graph()
+                .draw_mermaid(),
+                language="mermaid",
+            )
