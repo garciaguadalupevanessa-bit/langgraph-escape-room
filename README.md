@@ -32,6 +32,7 @@ Permite observar:
 - LangGraph: definición y ejecución del flujo.
 - Groq mediante `langchain-groq`: evaluación semántica de respuestas.
 - python-dotenv: carga de configuración local desde `.env`.
+- Graphviz: representación visual del grafo dentro de Streamlit.
 
 ## Estructura del proyecto
 
@@ -145,6 +146,29 @@ con `interrupt()`.
 La interfaz reanuda la ejecución mediante `Command(resume=...)`,
 manteniendo el identificador de la partida.
 
+## Visualización de la ejecución
+
+La interfaz ofrece dos pestañas:
+
+- Diagrama: muestra los nodos y los caminos posibles del grafo.
+- Historial: muestra el orden de los nodos completados durante la partida.
+
+Los colores del diagrama representan:
+
+- Verde: nodo visitado al menos una vez.
+- Amarillo: nodo pausado, esperando una entrada humana.
+- Gris: nodo todavía no visitado.
+- Azul en FIN: ejecución finalizada.
+
+Las conexiones se obtienen del grafo real de LangGraph.
+
+El diagrama muestra el estado al alcanzar una pausa o finalizar;
+no es una animación paso a paso.
+
+Las flechas representan los caminos posibles, no las transiciones
+realizadas. Para consultar el orden y las repeticiones de los nodos,
+se utiliza el historial.
+
 ## Responsabilidades principales
 
 | Elemento | Responsabilidad |
@@ -189,3 +213,15 @@ no realiza una segunda consulta al modelo.
 - Los checkpoints se guardan en memoria, no en una base de datos.
 - Las partidas no están diseñadas para recuperarse tras reiniciar
   el proceso.
+
+
+  ## Estado y próximos pasos
+
+- [x] Validación de respuestas con Groq.
+- [x] Ayudas progresivas según los intentos.
+- [x] Comprobación del avance y la victoria.
+- [x] Comprobación del límite de intentos.
+- [x] Comprobación de la aprobación y el rechazo final.
+- [x] Diagrama visual integrado en Streamlit.
+- [ ] Ensayar el guion completo de la masterclass.
+- [ ] Preparar una actividad para que el público modifique el grafo.
